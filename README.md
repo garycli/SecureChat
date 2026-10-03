@@ -1,68 +1,62 @@
 # SecureChat
-SecureChat 增强版客户端 - 集成军事级安全 + P2P网络通信 - PKI证书认证 - 多因素认证（MFA） - 证书指纹验证 - 信任管理 - P2P实时通信
-# 日常使用 直接运行test.py即可
-# SecureChat Military - 军事级安全聊天系统
+SecureChat 桌面加密通信原型，包含 PKI 证书、TOTP 多因素认证、证书指纹验证和客户端网络通信代码。
 
-[![Security Level](https://img.shields.io/badge/Security-9.5%2F10-success)](SECURITY_AUDIT_REPORT.md)
-[![Military Grade](https://img.shields.io/badge/Grade-Military-red)](MILITARY_GRADE_SECURITY.md)
-[![Compliance](https://img.shields.io/badge/Compliance-FIPS%20140--2-blue)](IMPLEMENTATION_STATUS.md)
-[![Production Ready](https://img.shields.io/badge/Status-Production%20Ready-green)](PRODUCTION_READY_EXAMPLE.py)
+GUI 入口：[test.py](test.py)（该文件是客户端程序，不是自动化测试套件）。
 
-**端到端加密的军事级安全通信系统**
-**End-to-End Encrypted Military-Grade Secure Communication System**
+[![Status](https://img.shields.io/badge/Status-Experimental-yellow)](test.py)
+
+**客户端加密、PKI 与 MFA 的研究演示原型**
+**Client-Side Encryption, PKI and MFA Prototype**
+
+**验证边界：** 本文以已提交源码为依据。当前仓库未提供独立安全审计、合规认证或可复现的性能、成功率报告，不能据此声明生产就绪。
 
 ---
 
 ## 🎯 核心特性 Core Features
 
 ### 🔐 加密与签名
-- **AES-256-GCM** - 对称加密（FIPS 140-2认证）
-- **Ed25519** - 数字签名（高性能，安全性强）
-- **X25519** - ECDH密钥交换（完美前向保密）
+- **AES-256-GCM** - 消息加密实现（不代表加密模块获得 FIPS 认证）
+- **Ed25519** - 签名和验签接口
+- **X25519** - ECDH密钥交换；基础模块使用持久化密钥，未验证完美前向保密
 - **SHA-256** - 加密哈希函数
 
 ### 🏛️ PKI证书基础设施
 - **RSA-4096** - CA证书颁发机构
 - **X.509 v3** - 标准数字证书
-- **CRL** - 证书吊销列表
-- **指纹验证** - 防止中间人攻击（MITM）
-- **信任链管理** - 自动维护信任数据库
+- **吊销记录** - 本地 JSON 序列号列表，未实现标准签名 CRL
+- **指纹验证** - 人工比对证书指纹
+- **信任管理** - 本地可信对等方记录
 
 ### 🔑 多因素认证 (MFA)
 - **TOTP** - 时间基础一次性密码（RFC 6238）
-- **Google Authenticator兼容** - 支持主流认证器应用
+- **认证器配置** - 提供 otpauth URI 和 Base32 密钥
 - **恢复码** - 10个备用恢复码
-- **失败锁定** - 3次失败后30分钟锁定
 
 ### 🛡️ 安全策略
-- **军事级密码要求** - 最低16字符，包含大小写、数字、特殊字符
-- **输入验证** - 防止XSS、SQL注入、命令注入
-- **会话管理** - 30分钟自动超时
-- **审计日志** - 全面记录所有安全事件
+- **密码规则** - GUI 注册路径要求最低16字符，包含大小写、数字、特殊字符
+- **输入验证** - 用户名、消息等字段的校验接口
+- **会话参数** - 策略包含30分钟超时和登录次数配置，GUI 尚未强制执行超时或失败锁定
+- **事件日志** - 增强加密模块提供本地日志；当前 GUI 使用基础加密模块
 - **防重放攻击** - 序列号机制
 
-### 🌐 网络安全
-- **WSS/TLS 1.3** - WebSocket安全传输
-- **JWT认证** - 基于令牌的身份验证
-- **速率限制** - 100请求/分钟
-- **IP过滤** - 黑白名单支持
-- **双向证书验证** - 客户端和服务器相互认证
+### 🌐 网络连接
+- **WebSocket** - `test.py` 默认使用 `ws://`，未配置 TLS
+- **信令与中继** - 联网依赖外部服务，当前仓库未提交服务端实现
+- **NAT与UDP打洞** - 提供客户端模块，跨网络可靠性尚未验证
 
 ---
 
-## 📊 安全评分 Security Rating
+## 📊 实现证据 Implementation Evidence
 
-| 功能 | 评分 | 说明 |
-|------|------|------|
-| **加密强度** | 10/10 | AES-256-GCM + Ed25519 |
-| **身份认证** | 10/10 | PKI证书 + MFA |
-| **密钥管理** | 10/10 | 加密存储 + 自动轮换 |
-| **防MITM攻击** | 10/10 | 证书指纹验证 |
-| **防重放攻击** | 10/10 | 序列号机制 |
-| **审计能力** | 9/10 | 全面日志记录 |
-| **前向保密** | 9/10 | ECDH密钥交换 |
+| 模块 | 已提交源码 | 范围 |
+|------|------------|------|
+| 加密与签名 | [crypto_module.py](client/crypto_module.py) | AES-GCM、Ed25519、X25519及序列号检查代码 |
+| PKI与信任 | [pki_manager.py](client/pki_manager.py) | 本地证书、密钥存储、吊销记录和指纹管理 |
+| MFA | [mfa_module.py](client/mfa_module.py) | TOTP与恢复码 |
+| 输入与策略 | [security_policy.py](common/security_policy.py) | 校验接口和策略参数 |
+| 增强加密 | [crypto_module_enhanced.py](client/crypto_module_enhanced.py) | 双棘轮和事件日志的实验性实现 |
 
-**总体评分**: **⭐⭐⭐⭐⭐ 9.5/10**
+源码存在不等于安全性、集成完整性或合规性已验证。
 
 ---
 
@@ -71,35 +65,27 @@ SecureChat 增强版客户端 - 集成军事级安全 + P2P网络通信 - PKI证
 ### 1. 安装依赖
 
 ```bash
-pip3 install cryptography websockets pyotp qrcode pillow
+python3 -m pip install cryptography pycryptodome websockets qrcode pillow
 ```
 
-### 2. 运行完整演示
+需要带 Tkinter 的 Python 桌面环境。
+
+### 2. 运行已提交入口
 
 ```bash
-# 日常使用完整演示（推荐！）
-python3 demo_daily_usage.py
+# 增强版 GUI 客户端
+python3 test.py
 
-# 生产环境配置示例
-python3 PRODUCTION_READY_EXAMPLE.py
-
-# 军事级设置向导（交互式）
-python3 example_military_setup.py
-
-# 自动化测试套件
-python3 test_military_security.py
+# 另一套 GUI（使用 client/p2p_client.py，不含相同的PKI/MFA登录流程）
+python3 main.py
 ```
 
-### 3. 启动GUI客户端
-
-```bash
-python3 secure_chat_client_enhanced.py
-```
+联网前请配置 `test.py` 中的 `SIGNALING_SERVER` 并准备可用服务端；当前仓库未提交服务端。增强客户端目前从本机 `~/.securechat_military/keys/` 读取对端证书及公钥，跨机器密钥分发流程仍需补齐。这些启动命令不代表完整通信流程已验证。
 
 **首次使用**:
 1. 输入用户名（3-32字符）
 2. 设置强密码（≥16字符）
-3. 扫描二维码设置MFA
+3. 将显示的密钥导入认证器并完成MFA验证
 4. 保存恢复码
 
 **日常使用**:
@@ -112,103 +98,73 @@ python3 secure_chat_client_enhanced.py
 
 ## 📁 项目结构
 
+当前已提交文件：
+
 ```
-p2p_secure_system/
-├── client/                          # 客户端模块
-│   ├── pki_manager.py              # PKI证书管理 (450行)
-│   ├── mfa_module.py               # 多因素认证 (300行)
-│   ├── crypto_module.py            # 基础加密（稳定）
-│   ├── crypto_module_enhanced.py   # 增强加密（实验性）
-│   └── ...
-│
-├── server/                          # 服务器模块
-│   ├── signaling_server_enhanced.py # 军事级服务器 (400行)
-│   └── ...
-│
-├── common/                          # 共享模块
-│   └── security_policy.py          # 安全策略 (350行)
-│
-├── 📖 文档 Documentation
-│   ├── README.md                   # 本文档
-│   ├── DAILY_USE_CLIENT_GUIDE.md  # 日常使用指南
-│   ├── MILITARY_GRADE_SECURITY.md # 军事级部署文档
-│   ├── SECURITY_AUDIT_REPORT.md   # 安全审计报告
-│   ├── IMPLEMENTATION_STATUS.md   # 实现状态详解
-│   └── QUICKSTART_MILITARY.md     # 快速部署指南
-│
-├── 🧪 示例和测试 Examples & Tests
-│   ├── demo_daily_usage.py        # 日常使用演示（推荐）
-│   ├── PRODUCTION_READY_EXAMPLE.py # 生产环境配置
-│   ├── example_military_setup.py  # 军事级设置向导
-│   ├── test_military_security.py  # 自动化测试
-│   └── secure_chat_client_enhanced.py # GUI客户端
-│
-└── tests/                          # 单元测试
-    └── ...
+SecureChat/
+├── client/
+│   ├── crypto_module.py
+│   ├── crypto_module_enhanced.py
+│   ├── hole_puncher.py
+│   ├── mfa_module.py
+│   ├── nat_detector.py
+│   ├── p2p_client.py
+│   └── pki_manager.py
+├── common/
+│   └── security_policy.py
+├── README.md
+├── main.py
+├── run.sh
+└── test.py
 ```
 
 ---
 
 ## 📚 文档导航
 
-### 适用于不同用户
+### 已提交入口与模块
 
-| 用户类型 | 推荐文档 | 用途 |
-|----------|----------|------|
-| **普通用户** | [DAILY_USE_CLIENT_GUIDE.md](DAILY_USE_CLIENT_GUIDE.md) | 日常使用说明 |
-| **系统管理员** | [MILITARY_GRADE_SECURITY.md](MILITARY_GRADE_SECURITY.md) | 部署和维护 |
-| **安全审计员** | [SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md) | 安全评估报告 |
-| **开发人员** | [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | 技术实现细节 |
-| **决策者** | [README.md](README.md) (本文档) | 系统概览 |
+| 内容 | 入口 | 用途 |
+|------|------|------|
+| 增强客户端 | [test.py](test.py) | PKI、MFA与聊天GUI实现 |
+| 基础客户端 | [main.py](main.py) | 另一套GUI与P2P客户端接入 |
+| PKI模块 | [pki_manager.py](client/pki_manager.py) | 证书与本地密钥管理 |
+| MFA模块 | [mfa_module.py](client/mfa_module.py) | TOTP与恢复码实现 |
+| 项目概览 | [README.md](README.md) | 当前公开范围与限制 |
 
 ### 快速链接
 
-- 🎮 **[demo_daily_usage.py](demo_daily_usage.py)** - 5分钟了解完整功能
-- 🏭 **[PRODUCTION_READY_EXAMPLE.py](PRODUCTION_READY_EXAMPLE.py)** - 生产环境配置模板
-- 🛡️ **[SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md)** - 安全审计详情
-- 📖 **[DAILY_USE_CLIENT_GUIDE.md](DAILY_USE_CLIENT_GUIDE.md)** - 完整使用手册
+- 🎮 **[test.py](test.py)** - 增强GUI入口
+- 🌐 **[p2p_client.py](client/p2p_client.py)** - 客户端连接逻辑
+- 🔐 **[crypto_module.py](client/crypto_module.py)** - 基础加密实现
+- 🧪 **[crypto_module_enhanced.py](client/crypto_module_enhanced.py)** - 实验性增强模块
 
 ---
 
 ## 🎓 使用场景 Use Cases
 
-### ✅ 适用场景
+### 原型展示与学习
 
-- 🎖️ **军方通信** - 战术通信、指挥控制
-- 💰 **金融交易** - 交易指令、敏感数据
-- 🏛️ **政府机密** - 机密文件、外交通信
-- 🏥 **医疗数据** - 患者记录、诊断信息
-- ⚖️ **法律事务** - 律师-客户特权通信
-- 🔬 **企业机密** - 研发数据、商业机密
-- 📰 **新闻保护** - 记者-信源保密通信
+- 加密、证书和TOTP模块的学习与代码研究
+- 桌面GUI和异步网络通信的项目展示
+- 受控环境中的一对一通信实验
 
-### ❌ 不适用场景
+### 尚未验证的场景
 
-- 公开聊天室（过度保护）
-- 极高吞吐量场景（需要优化）
-- 移动带宽受限环境（未优化）
+- 生产环境及需要独立安全审计、认证或合规验收的应用
+- 高吞吐量、多用户并发或复杂NAT环境
+- 移动端和带宽受限环境
 
 ---
 
 ## 🔒 安全特性详解
 
-### 端到端加密 (E2E)
+### 客户端加密流程
 
-```
-[Alice]               [Server]              [Bob]
-   |                     |                     |
-   |-- Encrypted Msg --->|                     |
-   |   (AES-256-GCM)     |                     |
-   |                     |-- Forward -------->  |
-   |                     |                     |
-   |                  无法解密               解密成功
-   |                (Zero-Knowledge)         (E2E验证)
-```
-
-**特点**:
-- 服务器**无法**解密消息内容
-- 只有通信双方持有解密密钥
-- 中间节点只转发加密数据
+**源码中的流程**：
+- 客户端先调用 AES-GCM 加密，再向网络发送密文
+- 增强GUI从本地密钥存储读取身份与DH密钥
+- 密钥分发、对端身份绑定和端到端安全性仍需进一步验证
 
 ### PKI信任链
 
@@ -222,10 +178,10 @@ p2p_secure_system/
                       (有效期1年)
 
 验证流程:
-1. Bob连接Alice
-2. Alice发送证书
-3. Bob验证CA签名 ✓
-4. Bob检查证书指纹 ✓
+1. 客户端选择对等方（当前读取本机记录）
+2. 读取对端证书及公钥
+3. 验证CA签名
+4. 计算并检查已记录的证书指纹
 5. 用户手动确认指纹 ✓
 6. 添加到信任数据库
 ```
@@ -236,13 +192,12 @@ p2p_secure_system/
 登录流程:
 1. 用户名 + 密码 -----------> [第一因素]
 2. TOTP 6位数字 -----------> [第二因素]
-   (30秒有效期)
+   (30秒周期，允许相邻时间步)
 3. 可选: 恢复码 -----------> [备用因素]
 
-防护:
-- 密码泄露 ✗ → 仍需TOTP ✓
-- TOTP截获 ✗ → 30秒后失效 ✓
-- 设备丢失 ✗ → 使用恢复码 ✓
+说明:
+- TOTP默认30秒周期，验证窗口允许相邻时间步
+- 恢复码用于备用登录，不能替代私钥及配置备份
 ```
 
 ---
@@ -250,13 +205,13 @@ p2p_secure_system/
 ## 🛠️ 技术栈 Technology Stack
 
 ### 加密库
-- **cryptography** - Python加密库（FIPS 140-2）
-- **pycryptodome** - 额外加密功能
-- **pyotp** - TOTP实现
+- **cryptography** - 密钥、证书和签名实现所用的 Python 库
+- **pycryptodome** - AES-GCM 实现
+- **hashlib/hmac** - 当前 TOTP 模块使用的标准库
 
 ### 网络
 - **websockets** - WebSocket协议
-- **ssl/tls** - 传输层安全
+- **asyncio** - 异步网络通信；当前默认连接未启用 TLS
 
 ### 界面
 - **tkinter** - GUI框架（内置）
@@ -269,44 +224,13 @@ p2p_secure_system/
 
 ## 📈 性能指标 Performance
 
-### 加密性能
-
-| 操作 | 时间 | 吞吐量 |
-|------|------|--------|
-| 密钥生成 | ~500ms | - |
-| 证书签发 | ~200ms | - |
-| 消息加密 | ~1ms | ~1000 msg/s |
-| 消息解密 | ~1ms | ~1000 msg/s |
-| MFA验证 | ~10ms | ~100 req/s |
-
-### 网络性能
-
-| 场景 | 延迟 | 带宽 |
-|------|------|------|
-| 本地网络 | <10ms | 高 |
-| 互联网 | 50-200ms | 中 |
-| NAT穿透 | +20ms | 中 |
+当前仓库未提供基准脚本、测试环境或可复现结果。加解密耗时、吞吐量、网络延迟与NAT穿透开销均需实测，本文不列出未经验证的数值。
 
 ---
 
 ## 🔐 合规性 Compliance
 
-### 已满足的标准
-
-- ✅ **FIPS 140-2** - 联邦信息处理标准（加密模块）
-- ✅ **NIST SP 800-57** - 密钥管理建议
-- ✅ **NIST SP 800-63B** - 数字身份指南
-- ✅ **GDPR** - 通用数据保护条例
-- ✅ **HIPAA** - 健康保险流通与责任法案
-- ✅ **PCI DSS** - 支付卡行业数据安全标准
-- ✅ **SOC 2 Type II** - 服务组织控制
-- ✅ **ISO 27001** - 信息安全管理
-
-### 可申请的认证
-
-1. **Common Criteria EAL4+** - 信息技术安全评估
-2. **FedRAMP Moderate** - 联邦风险和授权管理计划
-3. **FIPS 140-2 Level 2** - 密码模块验证（需硬件支持）
+当前仓库未提供认证证书、第三方审计报告或合规验收材料，不声明已经取得 FIPS 140-2、SOC 2、ISO 27001 等认证或满足 GDPR、HIPAA、PCI DSS 等合规要求。
 
 ---
 
@@ -314,61 +238,52 @@ p2p_secure_system/
 
 ### 功能限制
 
-1. **群聊** - 当前仅支持P2P，群聊需要额外实现
-2. **文件传输** - 大文件传输未优化
+1. **群聊** - 当前代码围绕一对一通信，未包含群聊实现
+2. **文件传输** - 存在附件界面入口，未见完整文件传输协议实现
 3. **移动客户端** - 当前仅有桌面版
 4. **视频通话** - 未实现实时音视频
 
 ### 性能限制
 
-1. **并发连接** - 服务器最大10,000并发
-2. **消息大小** - 单条消息最大1MB
-3. **带宽** - 未针对低带宽优化
+1. **并发连接** - 未提交服务端和容量基准，无法给出并发上限
+2. **消息长度** - 输入校验器默认限制10,000字符，不代表网络消息的字节上限
+3. **带宽与NAT** - 未提供跨网络可靠性或低带宽测试结果
 
 ### 实验性功能
 
-1. **双棘轮算法** - `crypto_module_enhanced.py` 需要更多测试
-   - 建议使用稳定版 `crypto_module.py`
+1. **双棘轮算法** - `client/crypto_module_enhanced.py` 为实验性实现，需要进一步验证
+   - GUI 当前使用 `client/crypto_module.py`；不据此宣称其已通过安全审计
 
 ---
 
 ## 🔄 更新日志 Changelog
 
-### v2.0 (2025-11-25) - 军事级安全升级
+### v2.0 (2025-11-25) - PKI与MFA模块
 
 **新功能**:
-- ✅ PKI证书基础设施（X.509, CA, CRL）
+- ✅ PKI证书模块（X.509, CA, 本地吊销记录）
 - ✅ 多因素认证（TOTP, 恢复码）
-- ✅ 军事级服务器（WSS, JWT, 速率限制）
+- 客户端 WebSocket 通信代码（服务端未提交）
 - ✅ 安全策略（输入验证, 密码要求）
-- ✅ 信任链管理（指纹验证）
-- ✅ 全面审计日志
+- ✅ 本地信任管理（指纹比对）
+- 增强加密模块的本地事件日志（实验性）
 - ✅ GUI客户端（日常使用）
 
-**改进**:
-- 🔧 安全等级从 6.0/10 提升到 9.5/10
-- 🔧 修复中间人攻击漏洞
-- 🔧 修复密钥持久化问题
-- 🔧 修复服务器认证缺失
+**实现范围**:
+- 提供加密密钥保存与加载接口
+- 提供证书、指纹验证和MFA登录接入
+- 独立部署指南、安全审计和实现状态文档尚未提交
 
-**文档**:
-- 📖 完整的用户指南
-- 📖 部署文档
-- 📖 安全审计报告
-- 📖 实现状态文档
-
-### v1.0 (原始版本)
+### 基础客户端路径（main.py / client/p2p_client.py）
 
 **功能**:
-- ✅ 基础端到端加密（AES-256-GCM）
-- ✅ NAT穿透（STUN）
-- ✅ WebSocket信令服务器
+- 客户端AES-256-GCM加密代码
+- STUN NAT检测与UDP打洞代码
+- WebSocket信令客户端
 
-**问题**:
-- ⚠️ 缺少PKI信任链
-- ⚠️ 无MFA支持
-- ⚠️ 服务器无认证
-- ⚠️ 密钥无持久化
+**与增强GUI的差异**:
+- 未接入同样的PKI、MFA与本地密钥存储流程
+- 仍依赖外部信令服务，不包含服务端认证实现
 
 ---
 
@@ -393,7 +308,7 @@ p2p_secure_system/
 
 ## 📄 许可证 License
 
-MIT License
+当前 README 声明采用 MIT；仓库尚未提供 `LICENSE` 文件，许可证正文待补充。
 
 ---
 
@@ -411,9 +326,8 @@ MIT License
 ### 获取帮助
 
 1. **查看文档** - 首先查阅相关文档
-2. **运行测试** - `python3 test_military_security.py`
-3. **查看日志** - `~/.securechat_military/audit/`
-4. **诊断工具** - 使用内置诊断命令
+2. **检查入口** - `python3 test.py`（GUI 客户端，不是自动化测试）
+3. **查看输出** - 当前客户端的控制台输出；增强模块日志尚未接入该 GUI
 
 ### 常见问题
 
@@ -424,7 +338,7 @@ A: 检查系统时间、证书有效期、CA证书
 A: 同步手机时间、等待新的30秒周期
 
 **Q: 连接超时？**
-A: 检查网络、防火墙、服务器状态
+A: 检查网络、防火墙及 `test.py` 中的 `SIGNALING_SERVER`；当前仓库未提供服务端
 
 **Q: 如何备份数据？**
 A: 备份整个 `~/.securechat_military/` 目录
@@ -439,54 +353,46 @@ A: 使用注册时保存的10个恢复码
 ### 立即开始
 
 ```bash
-# 1. 运行完整演示（推荐！）
-python3 demo_daily_usage.py
+# GUI入口；联网需额外准备服务端
+python3 test.py
 
-# 2. 查看演示结果
-# 成功率应为 100%
-
-# 3. 阅读使用指南
-cat DAILY_USE_CLIENT_GUIDE.md
-
-# 4. 启动GUI客户端
-python3 secure_chat_client_enhanced.py
+# 阅读已提交模块
+cat client/crypto_module.py
+cat client/pki_manager.py client/mfa_module.py
 ```
 
 ### 深入了解
 
-1. 📖 阅读 [MILITARY_GRADE_SECURITY.md](MILITARY_GRADE_SECURITY.md) - 了解部署细节
-2. 🔍 查看 [SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md) - 理解安全设计
-3. 🛠️ 研究 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) - 技术实现
-4. 🚀 运行 [PRODUCTION_READY_EXAMPLE.py](PRODUCTION_READY_EXAMPLE.py) - 生产配置
+1. 📖 阅读 [pki_manager.py](client/pki_manager.py) - 本地证书和密钥管理
+2. 🔍 查看 [crypto_module.py](client/crypto_module.py) - 加密与序列号检查
+3. 🛠️ 研究 [mfa_module.py](client/mfa_module.py) - TOTP与恢复码
+4. 🧪 查看 [crypto_module_enhanced.py](client/crypto_module_enhanced.py) - 实验性增强实现
 
 ---
 
-## 🌟 成功案例 Success Stories
+## 🌟 当前可查看的实现
 
-- ✅ **测试结果**: demo_daily_usage.py 通信成功率 **100%**
-- ✅ **安全评分**: 从 6.0/10 提升到 **9.5/10**
-- ✅ **合规标准**: 满足 **8+** 个国际安全标准
-- ✅ **功能完整**: **7+** 个主要安全模块
-- ✅ **生产就绪**: 完整的部署文档和示例
+- PKI证书、本地密钥存储、指纹及信任记录
+- TOTP与恢复码模块
+- 桌面GUI与客户端加密通信代码
+- 实验性双棘轮及事件日志模块
+
+完整通信成功率、性能和生产部署结果仍需可复现验证。
 
 ---
 
 <div align="center">
 
-**SecureChat Military - 军事级安全通信系统**
+**SecureChat - 桌面加密通信原型**
 
-[![Security](https://img.shields.io/badge/Security-9.5%2F10-success)]()
-[![Military Grade](https://img.shields.io/badge/Grade-Military-red)]()
-[![Production Ready](https://img.shields.io/badge/Status-Production%20Ready-green)]()
+[![Status](https://img.shields.io/badge/Status-Experimental-yellow)](test.py)
 
-*端到端加密 · PKI证书 · 多因素认证 · 军事级安全*
-
-**⭐⭐⭐⭐⭐**
+*客户端加密 · PKI证书 · 多因素认证 · 实验性原型*
 
 </div>
 
 ---
 
-**最后更新**: 2025-11-25
+**最后更新**: 2026-10-03
 **版本**: 2.0
-**状态**: 生产就绪 ✅
+**状态**: 实验性原型，尚未完成生产验证
